@@ -1,7 +1,15 @@
 #!/bin/bash
-module load samtools/1.11.18
 fasta_file=$1
 base_name=$(echo "${fasta_file}" | perl -pe 's/\.fasta$//;s/\.fna$//;s/\.fa$//')
+
+samtools_test=$(which samtools 2> /dev/null)
+if [ -z "$samtools_test" ]
+then
+    echo "Error: samtools not found in PATH"
+    exit 1
+fi
+
+
 if [ ! -f "${base_name}.fai" ] && [ ! -f "${fasta_file}.fai" ]
 then
 	samtools_cmd=$(which samtools)

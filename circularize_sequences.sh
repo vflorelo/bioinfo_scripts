@@ -1,8 +1,15 @@
 #!/bin/bash
-module load EMBOSS/6.6.0
 fasta_file=$1
 sizes_file=$2
 redundancy=$3
+
+seqret_test=$(which seqret 2> /dev/null)
+if [ -z "$seqret_test" ]
+then
+    echo "Error: EMBOSS not found in PATH"
+    exit 1
+fi
+
 num_seqs=$(cat "${sizes_file}" | wc -l)
 for i in $(seq 1 ${num_seqs})
 do

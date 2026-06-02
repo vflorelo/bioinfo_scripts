@@ -1,7 +1,14 @@
 #!/bin/bash
-module load samtools/1.22.1-15
 fasta_file=$1
 chunk_size=$2
+
+samtools_test=$(which samtools 2> /dev/null)
+if [ -z "$samtools_test" ]
+then
+    echo "Error: samtools not found in PATH"
+    exit 1
+fi
+
 seq_sizes=$(samtools faidx ${fasta_file} --fai-idx /dev/stdout | awk 'BEGIN{FS="\t"}{print $1 FS $2}')
 num_lines=$(echo "${seq_sizes}" | wc -l)
 for i in $(seq 1 ${num_lines})

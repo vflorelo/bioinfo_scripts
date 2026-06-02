@@ -1,9 +1,23 @@
 #!/bin/bash
-module load bedtools/2.29
-module load samtools/1.11.18
+
 fasta_file=$1
 bed_file=$2
 tsv_file=$3
+
+samtools_test=$(which samtools 2> /dev/null)
+if [ -z "$samtools_test" ]
+then
+    echo "Error: samtools not found in PATH"
+    exit 1
+fi
+
+bedtools_test=$(which bedtools 2> /dev/null)
+if [ -z "$bedtools_test" ]
+then
+    echo "Error: bedtools not found in PATH"
+    exit 1
+fi
+
 fasta_base_name=$(echo ${fasta_file} | rev | cut -d\. -f1 --complement | rev)
 samtools faidx --fai-idx /dev/stdout ${fasta_file} | awk 'BEGIN{FS="\t"}{print $1 FS 0 FS $2 FS $1}' > ${fasta_base_name}.bed
 low_coverage_bins=$(tail -n+2 ${tsv_file} | awk 'BEGIN{FS="\t"}{if(($3/$2)<0.95){print $1}}' | sort -V | uniq)

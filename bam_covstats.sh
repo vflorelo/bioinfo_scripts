@@ -1,8 +1,4 @@
 #!/bin/bash
-######################
-# wallerlab specific #
-######################
-module load samtools/1.11.18
 ##########################################################################################
 #  Parallel run:                                                                         #
 ##########################################################################################
@@ -39,6 +35,13 @@ bam_file=$1 #
 bed_file=$2 #
 gene_str=$3 #
 #############
+
+samtools_test=$(which samtools 2> /dev/null)
+if [ -z "$samtools_test" ]
+then
+    echo "Error: samtools not found in PATH"
+    exit 1
+fi
 
 ####################################################
 ###  bed file format                             ###

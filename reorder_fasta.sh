@@ -1,9 +1,22 @@
 #!/bin/bash
-module load seqtk/1.3
-module load samtools/1.11.18
 fasta_in_file=$1
 fasta_out_file=$2
 prefix=$3
+
+samtools_test=$(which samtools 2> /dev/null)
+if [ -z "$samtools_test" ]
+then
+    echo "Error: samtools not found in PATH"
+    exit 1
+fi
+
+seqtk_test=$(which seqtk 2> /dev/null)
+if [ -z "$seqtk_test" ]
+then
+    echo "Error: seqtk not found in PATH"
+    exit 1
+fi
+
 num_sequences=$(grep \> ${fasta_in_file} | wc -l)
 pad_len=$(echo ${num_sequences} | awk '{print length($1)+1}')
 seq_list=$(samtools faidx --fai-idx /dev/stdout "${fasta_in_file}" | sort -nrk2 | cut -f1)

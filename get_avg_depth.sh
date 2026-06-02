@@ -1,8 +1,15 @@
 #!/bin/bash
-module load samtools/1.11.18
 bam_file=$1
 bed_file=$2
 gene_str=$3
+
+samtools_test=$(which samtools 2> /dev/null)
+if [ -z "$samtools_test" ]
+then
+    echo "Error: samtools not found in PATH"
+    exit 1
+fi
+
 if [ -z "${gene_str}" ]
 then
     gene_list=$(cut -f4 ${bed_file} | grep -v ^$ | sort -V | uniq )
