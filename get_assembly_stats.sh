@@ -1,22 +1,33 @@
 #!/bin/bash
-assembly_datablock=$(infoseq $1 | tail -n+2 | awk '{print $3"\t"$6}' | sort -nrk2 )
-longest_contig=`echo "$assembly_datablock" | head -n1 | cut -f2`
-num_contigs=`echo "$assembly_datablock" | wc -l`
-assembly_length=`echo "$assembly_datablock" | awk 'BEGIN{FS="\t"}{sum+=$2}END{print sum}'`
-n50=`echo "$assembly_datablock" | awk -v assembly_length="$assembly_length" 'BEGIN{FS="\t"}{sum+=$2}{if(sum>=(assembly_length/2)){print $2}}' | head -n1`
-megabase_length=`echo "$assembly_datablock" | awk 'BEGIN{FS="\t"}{if($2>=1e6){sum+=$2}}END{print sum}'`
-megabase_count=`echo "$assembly_datablock" | awk 'BEGIN{FS="\t"}{if($2>=1e6){print $AF}}' | wc -l`
-decimegabase_length=`echo "$assembly_datablock" | awk 'BEGIN{FS="\t"}{if($2>=1e5){sum+=$2}}END{print sum}'`
-decimegabase_count=`echo "$assembly_datablock" | awk 'BEGIN{FS="\t"}{if($2>=1e5){print $AF}}' | wc -l`
-centimegabase_length=`echo "$assembly_datablock" | awk 'BEGIN{FS="\t"}{if($2>=1e4){sum+=$2}}END{print sum}'`
-centimegabase_count=`echo "$assembly_datablock" | awk 'BEGIN{FS="\t"}{if($2>=1e4){print $AF}}' | wc -l`
-echo -e "Assembly length\t$assembly_length" | awk 'BEGIN{FS="\t"}{print $1 FS $2/1e6"Mbp"}'
-echo -e "Longest contig\t$longest_contig" | awk 'BEGIN{FS="\t"}{print $1 FS $2/1e6"Mbp"}'
-echo -e "Contig count\t$num_contigs"
-echo -e "Assembly n50\t$n50"  | awk 'BEGIN{FS="\t"}{print $1 FS $2/1e6"Mbp"}'
-echo -e "Contigs >1e6 bp\t$megabase_count"
-echo -e "Length  >1e6 bp\t$megabase_length" | awk 'BEGIN{FS="\t"}{print $1 FS $2/1e6"Mbp"}'
-echo -e "Contigs >1e5 bp\t$decimegabase_count"
-echo -e "Length  >1e5 bp\t$decimegabase_length" | awk 'BEGIN{FS="\t"}{print $1 FS $2/1e6"Mbp"}'
-echo -e "Contigs >1e4 bp\t$centimegabase_count"
-echo -e "Length  >1e4 bp\t$centimegabase_length" | awk 'BEGIN{FS="\t"}{print $1 FS $2/1e6"Mbp"}'
+module load samtools/1.11.18
+fasta_file=$1
+base_name=$(echo "${fasta_file}" | perl -pe 's/\.fasta$//;s/\.fna$//;s/\.fa$//')
+if [ ! -f "${base_name}.fai" ] && [ ! -f "${fasta_file}.fai" ]
+then
+	samtools_cmd=$(which samtools)
+	if [ -z "${samtools_cmd}" ]
+	then
+		perl -pe 'if(/\>/){s/$/\t/};s/\n//;s/\>/\n/g;s/\ .*\t/\t/' ${fasta_file} | tail -n+2 | awk 'BEGIN{FS="\t"}{print $1 FS length($2)}' > ${base_name}.fai
+		datablock=$(sort -nk2 ${base_name}.fai)
+	else
+		samtools faidx ${fasta_file}
+		datablock=$(sort -nk2 ${fasta_file}.fai)
+	fi
+else
+	if [ -f "${base_name}.fai" ]
+	then
+		datablock=$(sort -nk2 ${base_name}.fai)
+	elif [ -f "${fasta_file}.fai" ]
+	then
+		datablock=$(sort -nk2 ${fasta_file}.fai)
+	fi
+fi
+total_length=$(echo "${datablock}" | awk 'BEGIN{FS="\t"}{sum+=$2}END{print sum}')
+echo "${datablock}" | awk -v total_length="${total_length}" 'BEGIN{FS="\t"}
+{
+	{total_sum+=$2}
+	{if(total_sum<(total_length/2)){n50_length=$2;n50_name=$1;l50_cnt=NR}}
+	{if($2>=10000){deca_sum+=$2;deca_cnt+=1}}
+	{if($2>=100000){heca_sum+=$2;heca_cnt+=1}}
+	{if($2>=1000000){mega_sum+=$2;mega_cnt+=1}}
+}END{print"Total length:\t"total_sum"\nn50 length:\t"n50_length"\nn50 name:\t"n50_name"\nl50 count:\t"l50_cnt"\nContigs >1Mbp:\t"mega_cnt"\nLength >1Mbp:\t"mega_sum"\nContigs >100Kbp:\t"heca_cnt"\nLength >100Kbp:\t"heca_sum"\nContigs >10Kbp:\t"deca_cnt"\nLength >10Kbp:\t"deca_sum}' > ${base_name}.asm_stats.tsv
