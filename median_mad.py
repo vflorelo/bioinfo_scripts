@@ -3,10 +3,14 @@ import numpy as np
 import statistics
 import sys
 from scipy import stats
-num_str    = sys.argv[1]
-mad_factor = int(sys.argv[2])
+num_str    = str(sys.argv[1])
+num_type   = str(sys.argv[2])
+mad_factor = int(sys.argv[3])
 str_list   = num_str.split(",")
-num_list   = list(map(int, str_list))
+if (num_type == "int" or num_type == "INT" ):
+    num_list = list(map(int, str_list))
+elif (num_type == "float" or num_type == "FLOAT"):
+    num_list = list(map(float,str_list))
 num_count  = len(num_list)
 median     = statistics.median(num_list)
 mad        = stats.median_abs_deviation(num_list)
